@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ניהול — בת מצווה</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: linear-gradient(135deg, #1a0a2e 0%, #3d1155 50%, #1a0a2e 100%);
+      min-height: 100vh;
+      padding: 24px 16px;
+      color: #f3e8ff;
+    }
+
+    /* ===== מסך כניסה ===== */
+    #loginScreen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,200,220,0.25);
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 8px 60px rgba(200,60,150,0.35);
+      animation: fadeUp 0.7s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .login-card h1 {
+      text-align: center;
+      color: #fde68a;
+      font-size: 1.4rem;
+      margin-bottom: 28px;
+      letter-spacing: 1px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 0.88rem;
+      color: #d8b4fe;
+      margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(249,168,212,0.35);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: 'Heebo', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus { border-color: #f9a8d4; }
+    .login-error {
+      color: #fca5a5;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .login-error.show { display: block; }
+
+    /* ===== כפתורים ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(90deg, #ec4899, #a855f7);
+      color: #fff;
+      width: 100%;
+      justify-content: center;
+      padding: 12px;
+      margin-top: 4px;
+    }
+    .btn-danger {
+      background: rgba(239,68,68,0.2);
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+    }
+    .btn-logout {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #d8b4fe;
+      font-size: 0.85rem;
+      padding: 7px 16px;
+    }
+
+    /* ===== מסך ניהול ===== */
+    #adminScreen { display: none; }
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .admin-header h1 {
+      color: #fde68a;
+      font-size: 1.4rem;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ===== כרטיסי סיכום ===== */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .summary-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,200,220,0.15);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-card .val {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .summary-card .lbl {
+      font-size: 0.8rem;
+      color: #d8b4fe;
+    }
+    .val-yes      { color: #86efac; }
+    .val-maybe    { color: #fde68a; }
+    .val-no       { color: #fca5a5; }
+    .val-total    { color: #c084fc; }
+    .val-guests   { color: #f9a8d4; }
+    .val-children { color: #67e8f9; }
+    .val-adults   { color: #a5f3fc; }
+
+    /* ===== שדות עריכה בטבלה ===== */
+    .cell-input {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,200,220,0.2);
+      background: rgba(255,255,255,0.04);
+      color: #f3e8ff;
+      font-size: 0.88rem;
+      font-family: 'Heebo', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .cell-input:focus { border-color: rgba(249,168,212,0.6); background: rgba(255,255,255,0.08); }
+    .name-input   { width: 100%; min-width: 120px; }
+    .guests-input { width: 60px; text-align: center; }
+    .children-input { width: 60px; text-align: center; color: #67e8f9; border-color: rgba(103,232,249,0.3); background: rgba(103,232,249,0.06); }
+    .children-input:focus { border-color: #67e8f9; background: rgba(103,232,249,0.12); }
+
+    /* ===== טבלה ===== */
+    .table-wrapper {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,200,220,0.12);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .table-title {
+      padding: 14px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fde68a;
+      border-bottom: 1px solid rgba(255,200,220,0.12);
+    }
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 520px;
+    }
+    thead th {
+      padding: 12px 16px;
+      text-align: right;
+      font-size: 0.82rem;
+      color: #d8b4fe;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,200,220,0.1);
+    }
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.04); }
+    td {
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      color: #f3e8ff;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .badge-yes    { background: rgba(74,222,128,0.15); color: #86efac; border: 1px solid rgba(74,222,128,0.3); }
+    .badge-maybe  { background: rgba(253,230,138,0.12); color: #fde68a; border: 1px solid rgba(253,230,138,0.3); }
+    .badge-no     { background: rgba(248,113,113,0.12); color: #fca5a5; border: 1px solid rgba(248,113,113,0.3); }
+
+    /* ===== ריק / טעינה ===== */
+    .empty-state, .loading-state {
+      text-align: center;
+      padding: 40px;
+      color: #a78bfa;
+      font-size: 0.95rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #f9a8d4;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+
+    /* ===== Back link ===== */
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      color: rgba(255,255,255,0.3);
+      font-size: 0.8rem;
+      text-decoration: none;
+    }
+    .back-link:hover { color: rgba(255,255,255,0.55); }
+
+    /* ===== Modal ===== */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #1a0a2e;
+      border: 1px solid rgba(255,200,220,0.25);
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 60px rgba(200,60,150,0.3);
+    }
+    .modal h2 { color: #fde68a; font-size: 1.15rem; margin-bottom: 22px; }
+    .modal .form-group { margin-bottom: 14px; }
+    .modal .form-group label { display: block; font-size: 0.82rem; color: #d8b4fe; margin-bottom: 5px; }
+    .modal .form-group input,
+    .modal .form-group select {
+      width: 100%; padding: 9px 13px;
+      border-radius: 10px;
+      border: 1px solid rgba(249,168,212,0.3);
+      background: rgba(255,255,255,0.07);
+      color: #fff;
+      font-size: 0.92rem;
+      font-family: 'Heebo', sans-serif;
+      outline: none;
+    }
+    .modal .form-group select option { background: #1a0a2e; color: #fff; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .btn-save { background: linear-gradient(90deg,#ec4899,#a855f7); color:#fff; border:none; }
+  </style>
+</head>
+<body>
+
+<!-- ===== מסך כניסה ===== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>🔒 כניסת מנהל</h1>
+    <div class="form-group">
+      <label for="username">שם משתמש</label>
+      <input type="text" id="username" placeholder="admin" autocomplete="username" />
+    </div>
+    <div class="form-group">
+      <label for="password">סיסמה</label>
+      <input type="password" id="password" placeholder="••••" autocomplete="current-password" />
+    </div>
+    <div class="login-error" id="loginError">שם משתמש או סיסמה שגויים</div>
+    <button class="btn btn-primary" id="loginBtn">כניסה</button>
+    <div style="text-align:center; margin-top:16px;">
+      <a href="index.html" class="back-link">← חזרה להזמנה</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== מסך ניהול ===== -->
+<div id="adminScreen">
+  <div class="admin-header">
+    <h1>✨ ניהול הזמנות</h1>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="addRsvpBtn" style="padding:8px 18px;font-size:0.85rem">+ הוסף אישור</button>
+      <button class="btn btn-logout" id="logoutBtn">התנתקות</button>
+      <a href="index.html" class="btn btn-logout">← הזמנה</a>
+    </div>
+  </div>
+
+  <!-- סיכום -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="val val-total" id="sumTotal">—</div>
+      <div class="lbl">תגובות</div>
+    </div>
+    <div class="summary-card">
+      <div class="val val-guests" id="sumGuests">—</div>
+      <div class="lbl">סה"כ אורחים</div>
+    </div>
+    <div class="summary-card">
+      <div class="val val-adults" id="sumAdults">—</div>
+      <div class="lbl">מבוגרים</div>
+    </div>
+    <div class="summary-card">
+      <div class="val val-children" id="sumChildrenFamily">—</div>
+      <div class="lbl">ילדי משפחה</div>
+    </div>
+    <div class="summary-card">
+      <div class="val val-children" id="sumChildrenActivity" style="color:#c4b5fd">—</div>
+      <div class="lbl">ילדים לפעילות</div>
+    </div>
+    <div class="summary-card">
+      <div class="val val-yes" id="sumYes">—</div>
+      <div class="lbl">מגיעים ✅</div>
+    </div>
+    <div class="summary-card">
+      <div class="val val-no" id="sumNo">—</div>
+      <div class="lbl">לא מגיעים ❌</div>
+    </div>
+  </div>
+
+  <!-- טבלה -->
+  <div class="table-wrapper">
+    <div class="table-title">רשימת אורחים</div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>שם</th>
+            <th>מגיעים</th>
+            <th>ילדי משפחה</th>
+            <th>ילדים לפעילות</th>
+            <th>תגובה</th>
+            <th>תאריך שליחה</th>
+            <th>מחיקה</th>
+          </tr>
+        </thead>
+        <tbody id="rsvpTableBody">
+          <tr><td colspan="7" class="loading-state">טוען נתונים... <span class="spinner"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal הוספה/עריכה -->
+<div class="modal-backdrop" id="rsvpModal">
+  <div class="modal">
+    <h2 id="modalTitle">הוסף אישור הגעה</h2>
+    <div class="form-group">
+      <label>שם מלא</label>
+      <input type="text" id="mName" placeholder="שם האורח" />
+    </div>
+    <div class="form-group">
+      <label>מספר מגיעים</label>
+      <input type="number" id="mGuests" min="1" max="50" value="1" />
+    </div>
+    <div class="form-group">
+      <label>ילדי משפחה</label>
+      <input type="number" id="mChildrenFamily" min="0" max="50" value="0" />
+    </div>
+    <div class="form-group">
+      <label>ילדים לפעילות</label>
+      <input type="number" id="mChildrenActivity" min="0" max="50" value="0" />
+    </div>
+    <div class="form-group">
+      <label>תגובה</label>
+      <select id="mAttending">
+        <option value="yes">✅ מגיע/ה</option>
+        <option value="no">❌ לא מגיע/ה</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-logout" id="modalCancel">ביטול</button>
+      <button class="btn btn-save btn-primary" id="modalSave">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Compat SDK (regular scripts — works from file://) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey:            "AIzaSyASQrcuROcsZYyhqREoXtzqWL4bf84ltDA",
+    authDomain:        "tamar-b18a6.firebaseapp.com",
+    projectId:         "tamar-b18a6",
+    storageBucket:     "tamar-b18a6.firebasestorage.app",
+    messagingSenderId: "242294449234",
+    appId:             "1:242294449234:web:cf83680e723d82a529eb8b"
+  };
+
+  let db = null;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  } catch(e) {
+    console.warn('Firebase לא נטען:', e);
+  }
+
+  var _source = 'local'; // 'firebase' | 'local'
+
+  // ===== אימות =====
+  const ADMIN_USER = 'admin';
+  const ADMIN_PASS = '1234';
+  const SESSION_KEY = 'bm_admin_ok';
+
+  const loginScreen = document.getElementById('loginScreen');
+  const adminScreen = document.getElementById('adminScreen');
+  const loginError  = document.getElementById('loginError');
+
+  function showAdmin() {
+    loginScreen.style.display = 'none';
+    adminScreen.style.display = 'block';
+    loadRsvps();
+  }
+
+  if (sessionStorage.getItem(SESSION_KEY) === '1') { showAdmin(); }
+
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('password').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  function doLogin() {
+    var user = document.getElementById('username').value.trim();
+    var pass = document.getElementById('password').value;
+    if (user === ADMIN_USER && pass === ADMIN_PASS) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      loginError.classList.remove('show');
+      showAdmin();
+    } else {
+      loginError.classList.add('show');
+      document.getElementById('password').value = '';
+    }
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', function() {
+    sessionStorage.removeItem(SESSION_KEY);
+    location.reload();
+  });
+
+  // ===== MODAL (הוספה) =====
+  document.getElementById('addRsvpBtn').addEventListener('click', function() {
+    document.getElementById('modalTitle').textContent      = 'הוסף אישור הגעה';
+    document.getElementById('mName').value                 = '';
+    document.getElementById('mGuests').value               = 1;
+    document.getElementById('mChildrenFamily').value       = 0;
+    document.getElementById('mChildrenActivity').value     = 0;
+    document.getElementById('mAttending').value            = 'yes';
+    document.getElementById('rsvpModal').classList.add('open');
+  });
+
+  document.getElementById('modalCancel').addEventListener('click', function() {
+    document.getElementById('rsvpModal').classList.remove('open');
+  });
+
+  document.getElementById('modalSave').addEventListener('click', function() {
+    var name             = document.getElementById('mName').value.trim();
+    var guests           = parseInt(document.getElementById('mGuests').value, 10) || 1;
+    var childrenFamily   = parseInt(document.getElementById('mChildrenFamily').value, 10) || 0;
+    var childrenActivity = parseInt(document.getElementById('mChildrenActivity').value, 10) || 0;
+    var attending        = document.getElementById('mAttending').value;
+    if (!name) { alert('יש להזין שם'); return; }
+
+    var entry = { name: name, guests: guests, childrenFamily: childrenFamily, childrenActivity: childrenActivity, attending: attending };
+    document.getElementById('rsvpModal').classList.remove('open');
+
+    if (db) {
+      db.collection('rsvps').add(Object.assign({}, entry, { timestamp: firebase.firestore.FieldValue.serverTimestamp() }))
+        .then(function() { loadRsvps(); })
+        .catch(function(e) {
+          console.warn('Firebase add failed, saving locally:', e);
+          entry.timestamp = new Date().toISOString();
+          var s = JSON.parse(localStorage.getItem('rsvps') || '[]');
+          s.push(entry); localStorage.setItem('rsvps', JSON.stringify(s));
+          loadRsvps();
+        });
+    } else {
+      entry.timestamp = new Date().toISOString();
+      var s = JSON.parse(localStorage.getItem('rsvps') || '[]');
+      s.push(entry); localStorage.setItem('rsvps', JSON.stringify(s));
+      loadRsvps();
+    }
+  });
+
+  // ===== טעינת RSVP — Firebase ראשוני, localStorage כגיבוי =====
+  function loadRsvps() {
+    var tbody = document.getElementById('rsvpTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-state">טוען נתונים... <span class="spinner"></span></td></tr>';
+
+    if (!db) { loadFromLocal(); return; }
+
+    var done = false;
+    var timer = setTimeout(function() {
+      if (!done) { done = true; loadFromLocal(); }
+    }, 7000);
+
+    db.collection('rsvps').orderBy('timestamp', 'desc').get()
+      .then(function(snap) {
+        if (done) return;
+        done = true; clearTimeout(timer);
+        _source = 'firebase';
+        var rows = [];
+        snap.forEach(function(doc) {
+          var d = doc.data();
+          var ts = d.timestamp;
+          if (ts && ts.toDate) ts = ts.toDate().toISOString();
+          rows.push({
+            _docId: doc.id,
+            name: d.name || '',
+            guests: parseInt(d.guests, 10) || 1,
+            childrenFamily:   parseInt(d.childrenFamily, 10)   || 0,
+            childrenActivity: parseInt(d.childrenActivity, 10) || 0,
+            attending: d.attending || 'yes',
+            timestamp: ts || null
+          });
+        });
+        updateSummary(rows);
+        renderRows(rows);
+      })
+      .catch(function(e) {
+        if (done) return;
+        done = true; clearTimeout(timer);
+        console.warn('Firebase read failed, using localStorage:', e);
+        loadFromLocal();
+      });
+  }
+
+  function loadFromLocal() {
+    _source = 'local';
+    var saved = JSON.parse(localStorage.getItem('rsvps') || '[]');
+    var rows  = saved.map(function(r, i) { return Object.assign({}, r, { _idx: i }); }).reverse();
+    updateSummary(saved);
+    renderRows(rows);
+  }
+
+  function renderRows(rows) {
+    var tbody = document.getElementById('rsvpTableBody');
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">אין אישורי הגעה עדיין</td></tr>';
+      return;
+    }
+    var labels = { yes: '✅ מגיע/ה', no: '❌ לא מגיע/ה' };
+    tbody.innerHTML = rows.map(function(r) {
+      var attending = r.attending || 'yes';
+      var label     = labels[attending] || attending;
+      var date      = r.timestamp
+        ? new Date(r.timestamp).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })
+        : '—';
+      var cf  = parseInt(r.childrenFamily, 10)   || 0;
+      var ca  = parseInt(r.childrenActivity, 10) || 0;
+      var did = r._docId || '';
+      var idx = r._idx !== undefined ? r._idx : '';
+      return '<tr>' +
+        '<td><input type="text"   class="cell-input name-input"     value="' + escHtml(r.name||'') + '" data-docid="' + did + '" data-idx="' + idx + '" data-field="name" /></td>' +
+        '<td><input type="number" class="cell-input guests-input"   min="1" max="999" value="' + (r.guests||1) + '" data-docid="' + did + '" data-idx="' + idx + '" data-field="guests" /></td>' +
+        '<td><input type="number" class="cell-input children-input" min="0" max="999" value="' + cf + '" data-docid="' + did + '" data-idx="' + idx + '" data-field="childrenFamily" /></td>' +
+        '<td><input type="number" class="cell-input children-input" min="0" max="999" value="' + ca + '" data-docid="' + did + '" data-idx="' + idx + '" data-field="childrenActivity" style="color:#c4b5fd;border-color:rgba(196,181,253,0.3);background:rgba(196,181,253,0.06)" /></td>' +
+        '<td><span class="badge badge-' + attending + '">' + label + '</span></td>' +
+        '<td style="direction:ltr;text-align:right">' + date + '</td>' +
+        '<td><button class="btn btn-danger del-btn" data-docid="' + did + '" data-idx="' + idx + '">מחק</button></td>' +
+        '</tr>';
+    }).join('');
+
+    // עריכה ישירה
+    tbody.querySelectorAll('.cell-input').forEach(function(input) {
+      input.addEventListener('change', function() {
+        var docId = input.dataset.docid;
+        var idxStr = input.dataset.idx;
+        var field  = input.dataset.field;
+        var val    = field === 'name' ? input.value.trim() : (parseInt(input.value, 10) || 0);
+
+        if (docId && db) {
+          var upd = {}; upd[field] = val;
+          db.collection('rsvps').doc(docId).update(upd)
+            .catch(function(e) { console.warn('Firebase update failed:', e); });
+        }
+        if (idxStr !== '') {
+          var i2 = parseInt(idxStr, 10);
+          var s  = JSON.parse(localStorage.getItem('rsvps') || '[]');
+          if (s[i2]) { s[i2][field] = val; localStorage.setItem('rsvps', JSON.stringify(s)); }
+          if (_source === 'local') updateSummary(s);
+        }
+      });
+    });
+
+    // מחיקה
+    tbody.querySelectorAll('.del-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (!confirm('למחוק את הרשומה?')) return;
+        var docId  = btn.dataset.docid;
+        var idxStr = btn.dataset.idx;
+
+        if (docId && db) {
+          db.collection('rsvps').doc(docId).delete()
+            .then(function() { loadRsvps(); })
+            .catch(function(e) { console.warn('Firebase delete failed:', e); loadRsvps(); });
+          return;
+        }
+        if (idxStr !== '') {
+          var i2 = parseInt(idxStr, 10);
+          var s  = JSON.parse(localStorage.getItem('rsvps') || '[]');
+          s.splice(i2, 1); localStorage.setItem('rsvps', JSON.stringify(s));
+        }
+        loadRsvps();
+      });
+    });
+  }
+
+  function updateSummary(rows) {
+    var yesRows  = rows.filter(function(r) { return (r.attending || 'yes') === 'yes'; });
+    var no       = rows.filter(function(r) { return r.attending === 'no'; });
+    var guests   = rows.reduce(function(s,r){ return s + (parseInt(r.guests,10)||1); }, 0);
+    var cf       = rows.reduce(function(s,r){ return s + (parseInt(r.childrenFamily,10)||0); }, 0);
+    var ca       = rows.reduce(function(s,r){ return s + (parseInt(r.childrenActivity,10)||0); }, 0);
+    document.getElementById('sumTotal').textContent            = rows.length;
+    document.getElementById('sumGuests').textContent           = guests;
+    document.getElementById('sumAdults').textContent           = guests - cf - ca;
+    document.getElementById('sumChildrenFamily').textContent   = cf;
+    document.getElementById('sumChildrenActivity').textContent = ca;
+    document.getElementById('sumYes').textContent              = yesRows.length;
+    document.getElementById('sumNo').textContent               = no.length;
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

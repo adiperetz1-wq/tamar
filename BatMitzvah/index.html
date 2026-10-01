@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>הזמנה לבת מצווה</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:       #D4AF37;
+      --gold-light: #F5D060;
+      --gold-dim:   #9A7D24;
+      --black:      #080808;
+      --surface:    #111008;
+      --card-bg:    rgba(18, 14, 2, 0.88);
+      --text:       #F8EDD5;
+      --text-dim:   #C8A84A;
+    }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--black);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(180,140,20,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(120,90,10,0.08) 0%, transparent 70%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      padding: 28px 16px;
+    }
+
+    /* ===== CONFETTI CANVAS ===== */
+    #confettiCanvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(212,175,55,0.3);
+      border-radius: 4px;
+      max-width: 580px;
+      width: 100%;
+      padding: 0;
+      box-shadow:
+        0 0 0 1px rgba(212,175,55,0.08),
+        0 20px 80px rgba(0,0,0,0.8),
+        inset 0 1px 0 rgba(212,175,55,0.15);
+      animation: fadeUp 1s ease both;
+      overflow: hidden;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== GOLD TOP BAR ===== */
+    .gold-bar {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+    }
+
+    /* ===== INNER PADDING ===== */
+    .card-inner { padding: 44px 40px 36px; }
+
+    /* ===== ORNAMENT ===== */
+    .ornament {
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--gold-dim);
+      letter-spacing: 8px;
+      margin-bottom: 18px;
+    }
+
+    /* ===== TITLE ===== */
+    .invite-label {
+      text-align: center;
+      font-family: 'Heebo', sans-serif;
+      font-weight: 300;
+      font-size: 0.82rem;
+      letter-spacing: 5px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .invite-title {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      font-weight: 900;
+      background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dim) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+    /* ✏️ שם החוגגת */
+    .invite-name {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 4px;
+      margin-bottom: 28px;
+    }
+
+    /* ===== GOLD DIVIDER ===== */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 auto 28px;
+      max-width: 320px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-dim));
+    }
+    .divider::after {
+      background: linear-gradient(90deg, var(--gold-dim), transparent);
+    }
+    .divider span { color: var(--gold); font-size: 0.9rem; white-space: nowrap; }
+
+    /* ===== PHOTO ===== */
+    .photo-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+    .photo-ring {
+      position: relative;
+      width: 240px;
+      height: 240px;
+    }
+    .photo-ring::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: conic-gradient(var(--gold-light), var(--gold-dim), var(--gold), var(--gold-light));
+      animation: spinRing 6s linear infinite;
+      z-index: 0;
+    }
+    @keyframes spinRing { to { transform: rotate(360deg); } }
+    .photo-ring::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: var(--black);
+      z-index: 1;
+    }
+    .photo-ring img {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      border-radius: 50%;
+      border: 3px solid var(--surface);
+      filter: contrast(1.05) saturate(1.05) brightness(1.02);
+    }
+    .photo-placeholder {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold-dim);
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* ===== EVENT DETAILS ===== */
+    .event-details {
+      border: 1px solid rgba(212,175,55,0.18);
+      border-radius: 2px;
+      padding: 22px 26px;
+      margin-bottom: 32px;
+      background: rgba(212,175,55,0.03);
+    }
+    .detail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(212,175,55,0.07);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .detail-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .detail-row:first-child { padding-top: 0; }
+    .detail-icon {
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--gold);
+    }
+    .detail-row strong { color: var(--gold-light); font-weight: 600; }
+
+    /* ===== RSVP ===== */
+    .rsvp-title {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      color: var(--gold);
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label,
+    .form-group-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 11px 16px;
+      border-radius: 2px;
+      border: 1px solid rgba(212,175,55,0.2);
+      background: rgba(212,175,55,0.04);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: 'Heebo', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      border-color: var(--gold);
+      background: rgba(212,175,55,0.07);
+    }
+    input[type="number"] { max-width: 110px; }
+    input::placeholder { color: #7a6a35; }
+
+    /* Radio as pill buttons */
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-option {
+      flex: 1;
+      min-width: 90px;
+    }
+    .radio-option input[type="radio"] { display: none; }
+    .radio-option span {
+      display: block;
+      text-align: center;
+      padding: 9px 12px;
+      border: 1px solid rgba(212,175,55,0.25);
+      border-radius: 2px;
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(212,175,55,0.03);
+    }
+    .radio-option input[type="radio"]:checked + span {
+      border-color: var(--gold);
+      color: var(--gold-light);
+      background: rgba(212,175,55,0.1);
+      box-shadow: inset 0 0 0 1px var(--gold-dim);
+    }
+    .radio-option span:hover { border-color: var(--gold-dim); color: var(--text); }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid var(--gold);
+      border-radius: 2px;
+      background: linear-gradient(135deg, #1a1500, #2a2000);
+      color: var(--gold-light);
+      font-size: 0.9rem;
+      font-family: 'Heebo', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      transition: all 0.25s;
+      margin-top: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-submit::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .btn-submit:hover::before { opacity: 0.12; }
+    .btn-submit:hover { box-shadow: 0 0 20px rgba(212,175,55,0.2); }
+    .btn-submit span { position: relative; z-index: 1; }
+    .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ===== SUCCESS ===== */
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 24px;
+      border: 1px solid rgba(212,175,55,0.35);
+      border-radius: 2px;
+      background: rgba(212,175,55,0.06);
+      color: var(--gold-light);
+      font-size: 1rem;
+      margin-top: 16px;
+      line-height: 1.7;
+    }
+    .success-msg.show { display: block; animation: fadeUp 0.6s ease both; }
+    .success-icon { font-size: 2.2rem; margin-bottom: 8px; display: block; }
+
+    /* ===== ERROR ===== */
+    .error-msg {
+      display: none;
+      text-align: center;
+      padding: 12px;
+      border: 1px solid rgba(200,80,80,0.35);
+      border-radius: 2px;
+      color: #e8a0a0;
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+    .error-msg.show { display: block; }
+
+    /* ===== ADMIN LINK ===== */
+    .card-footer {
+      text-align: center;
+      padding: 14px;
+      border-top: 1px solid rgba(212,175,55,0.08);
+    }
+    .card-footer a { color: rgba(212,175,55,0.2); font-size: 0.75rem; text-decoration: none; }
+    .card-footer a:hover { color: rgba(212,175,55,0.4); }
+
+    /* ===== SPINNER ===== */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(212,175,55,0.3);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @media (max-width: 480px) {
+      .card-inner { padding: 32px 22px 28px; }
+      .invite-title { font-size: 2.2rem; }
+      .photo-ring { width: 200px; height: 200px; }
+    }
+
+    /* ===== THANK YOU OVERLAY ===== */
+    #thankyouOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.92);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      animation: fadeIn 0.5s ease both;
+    }
+    #thankyouOverlay.show { display: flex; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    #fwCanvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .ty-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 32px 24px;
+    }
+    .ty-ring {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 0 auto 28px;
+    }
+    .ty-ring::before {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: 50%;
+      background: conic-gradient(#F5D060, #9A7D24, #D4AF37, #F5D060);
+      animation: spinRing 3s linear infinite;
+    }
+    .ty-ring::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: #000;
+    }
+    .ty-ring img {
+      position: absolute;
+      inset: 7px;
+      width: calc(100% - 14px);
+      height: calc(100% - 14px);
+      border-radius: 50%;
+      object-fit: cover;
+      z-index: 1;
+    }
+    .ty-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4rem;
+      font-weight: 900;
+      background: linear-gradient(180deg, #F5D060, #D4AF37, #9A7D24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+    .ty-name {
+      font-size: 1.15rem;
+      color: #F8EDD5;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
+    .ty-sub {
+      font-size: 0.9rem;
+      color: #C8A84A;
+      letter-spacing: 2px;
+      margin-bottom: 28px;
+    }
+    .ty-close {
+      padding: 10px 32px;
+      border: 1px solid rgba(212,175,55,0.5);
+      border-radius: 2px;
+      background: transparent;
+      color: #D4AF37;
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .ty-close:hover { background: rgba(212,175,55,0.1); }
+  </style>
+</head>
+<body>
+
+<canvas id="confettiCanvas"></canvas>
+
+<div class="card">
+  <div class="gold-bar"></div>
+  <div class="card-inner">
+
+    <!-- כותרת -->
+    <div class="ornament">◆ &nbsp; ◆ &nbsp; ◆</div>
+    <div class="invite-label">מוזמנים לחגוג איתנו</div>
+    <div class="invite-title">בת מצווה</div>
+    <!-- ✏️ שני/י את שם החוגגת כאן -->
+    <div class="invite-name">תמר &nbsp;סויסה</div>
+
+    <div class="divider"><span>✦</span></div>
+
+    <!-- תמונת החוגגת -->
+    <div class="photo-wrapper">
+      <div class="photo-ring">
+        <img id="celebrantPhoto" src="photo.jpg" alt="החוגגת"
+             onerror="this.style.display='none'; document.getElementById('photoPlaceholder').style.display='flex';" />
+        <div class="photo-placeholder" id="photoPlaceholder" style="display:none">
+          photo.jpg
+        </div>
+      </div>
+    </div>
+
+    <!-- פרטי האירוע -->
+    <!-- ✏️ ערכי/י את הפרטים למטה -->
+    <div class="event-details">
+      <div class="detail-row">
+        <span class="detail-icon">◈</span>
+        <span>תאריך: <strong>יום שלישי &nbsp;|&nbsp; 17.11.2026</strong></span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-icon">◈</span>
+        <span>שעה: <strong>20:00</strong></span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-icon">◈</span>
+        <span>מיקום: <strong> אולם אירועים ניין גלרי פתח תקווה</strong></span>
+      </div>
+    </div>
+
+    <div class="divider"><span>✦</span></div>
+
+    <!-- RSVP -->
+    <div class="rsvp-title">אישור הגעה</div>
+    <form id="rsvpForm">
+      <div class="form-group">
+        <label for="guestName">שם מלא</label>
+        <input type="text" id="guestName" placeholder="הזינו את שמכם" required />
+      </div>
+
+      <div class="form-group">
+        <label for="guestCount">מספר מגיעים</label>
+        <input type="number" id="guestCount" min="1" max="20" value="1" required />
+      </div>
+
+      <div class="form-group">
+        <div class="form-group-label">האם תגיעו?</div>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="attending" value="yes" checked />
+            <span>✓ &nbsp;כן, נגיע!</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="attending" value="no" />
+            <span>✕ &nbsp;לא נוכל</span>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <span id="btnText">אשרו הגעה</span>
+      </button>
+    </form>
+
+    <div class="success-msg" id="successMsg">
+      <span class="success-icon">✦</span>
+      תודה רבה!<br/>
+      אישור ההגעה שלכם התקבל.<br/>
+      <span style="font-size:0.85rem; color:var(--text-dim)">מחכים לראותכם בשמחה</span>
+    </div>
+    <div class="error-msg" id="errorMsg">
+      שגיאה בשמירת הפרטים. בדקי שהגדרת את Firebase.
+    </div>
+
+  </div>
+  <div class="card-footer"><a href="admin.html">ניהול</a></div>
+</div>
+
+<!-- THANK YOU OVERLAY -->
+<div id="thankyouOverlay">
+  <canvas id="fwCanvas"></canvas>
+  <div class="ty-content">
+    <div class="ty-ring">
+      <img src="photo.jpg" alt="החוגגת" />
+    </div>
+    <div class="ty-title">תודה!</div>
+    <div class="ty-name" id="tyGuestName"></div>
+    <div class="ty-sub">מחכים לראותך בשמחה ✦</div>
+    <button class="ty-close" onclick="document.getElementById('thankyouOverlay').classList.remove('show')">סגור</button>
+  </div>
+</div>
+
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Firebase init בגוש נפרד — שגיאה כאן לא תמנע את הטופס מלעבוד -->
+<script>
+  window._db = null;
+  try {
+    firebase.initializeApp({
+      apiKey:            "AIzaSyASQrcuROcsZYyhqREoXtzqWL4bf84ltDA",
+      authDomain:        "tamar-b18a6.firebaseapp.com",
+      projectId:         "tamar-b18a6",
+      storageBucket:     "tamar-b18a6.firebasestorage.app",
+      messagingSenderId: "242294449234",
+      appId:             "1:242294449234:web:cf83680e723d82a529eb8b"
+    });
+    window._db = firebase.firestore();
+  } catch(e) {
+    console.warn('Firebase init failed:', e);
+  }
+</script>
+<!-- לוגיקת UI — תמיד רץ, גם אם Firebase נכשל -->
+<script>
+  var db = window._db;
+
+  // ===== CONTINUOUS CONFETTI =====
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx    = canvas.getContext('2d');
+  const COLORS = ['#D4AF37','#F5D060','#C9A82C','#fff8dc','#fffacd','#e8c84a','#b8932a'];
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function newPiece(spread) {
+    return {
+      x:    Math.random() * canvas.width,
+      y:    spread ? Math.random() * canvas.height : -12,
+      w:    4 + Math.random() * 7,
+      h:    3 + Math.random() * 5,
+      rot:  Math.random() * Math.PI * 2,
+      dRot: (Math.random() - 0.5) * 0.12,
+      vx:   (Math.random() - 0.5) * 2,
+      vy:   0.8 + Math.random() * 2,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      shape: Math.random() < 0.35 ? 'circle' : 'rect'
+    };
+  }
+
+  // 100 pezzi distribuiti sullo schermo all'inizio
+  const pieces = Array.from({ length: 100 }, () => newPiece(true));
+
+  function drawConfetti() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of pieces) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      if (p.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      }
+      ctx.restore();
+      p.x   += p.vx;
+      p.y   += p.vy;
+      p.rot += p.dRot;
+      // recycle piece when it exits the bottom
+      if (p.y > canvas.height + 20) Object.assign(p, newPiece(false));
+    }
+    requestAnimationFrame(drawConfetti);
+  }
+  drawConfetti();
+
+  // ===== FIREWORKS =====
+  const fwCanvas = document.getElementById('fwCanvas');
+  const fwCtx    = fwCanvas.getContext('2d');
+  let fwParticles = [];
+  let fwAnimId, fwInterval;
+  const FW_COLORS = ['#F5D060','#D4AF37','#fff','#ff9f43','#ffeaa7','#fd79a8','#a29bfe'];
+
+  function resizeFw() {
+    fwCanvas.width  = fwCanvas.offsetWidth  || window.innerWidth;
+    fwCanvas.height = fwCanvas.offsetHeight || window.innerHeight;
+  }
+
+  function shootFirework() {
+    const x = fwCanvas.width  * (0.05 + Math.random() * 0.9);
+    const y = fwCanvas.height * (0.05 + Math.random() * 0.85);
+    const hue = Math.floor(Math.random() * 360);
+    const count = 90 + Math.floor(Math.random() * 70);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 5;
+      fwParticles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1,
+        color: `hsl(${hue + Math.random() * 50 - 25},100%,${55 + Math.random() * 30}%)`,
+        size:  1.5 + Math.random() * 3,
+        decay: 0.013 + Math.random() * 0.01,
+        gravity: 0.07
+      });
+    }
+  }
+
+  function drawFireworks() {
+    fwCtx.fillStyle = 'rgba(0,0,0,0.18)';
+    fwCtx.fillRect(0, 0, fwCanvas.width, fwCanvas.height);
+    for (const p of fwParticles) {
+      p.x  += p.vx; p.y  += p.vy;
+      p.vy += p.gravity;
+      p.vx *= 0.97; p.alpha -= p.decay;
+      if (p.alpha <= 0) continue;
+      fwCtx.save();
+      fwCtx.globalAlpha = p.alpha;
+      fwCtx.fillStyle = p.color;
+      fwCtx.beginPath();
+      fwCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      fwCtx.fill();
+      fwCtx.restore();
+    }
+    fwParticles = fwParticles.filter(p => p.alpha > 0);
+    fwAnimId = requestAnimationFrame(drawFireworks);
+  }
+
+  function startFireworks() {
+    resizeFw();
+    shootFirework();
+    fwInterval = setInterval(shootFirework, 900);
+    drawFireworks();
+  }
+
+  function stopFireworks() {
+    clearInterval(fwInterval);
+    cancelAnimationFrame(fwAnimId);
+    fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+    fwParticles = [];
+  }
+
+  // ===== RSVP =====
+  const form      = document.getElementById('rsvpForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const btnText   = document.getElementById('btnText');
+  const successEl = document.getElementById('successMsg');
+  const errorEl   = document.getElementById('errorMsg');
+  const overlay   = document.getElementById('thankyouOverlay');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.classList.remove('show');
+
+    const name      = document.getElementById('guestName').value.trim();
+    const guests    = parseInt(document.getElementById('guestCount').value, 10);
+    const attending = document.querySelector('input[name="attending"]:checked').value;
+    if (!name) return;
+
+    submitBtn.disabled = true;
+    btnText.innerHTML = '<span class="spinner"></span>שולח...';
+
+    const entry = { name, guests, attending, timestamp: new Date().toISOString() };
+
+    try {
+      // שמור תמיד ב-localStorage (מובטח לעבוד)
+      const saved = JSON.parse(localStorage.getItem('rsvps') || '[]');
+      saved.push(entry);
+      localStorage.setItem('rsvps', JSON.stringify(saved));
+
+      // גם ב-Firebase אם זמין (best-effort)
+      if (window._db) {
+        window._db.collection('rsvps').add({ name, guests, attending, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
+          .catch(function(e) { console.warn('Firebase write failed:', e); });
+      }
+
+      form.style.display = 'none';
+      successEl.classList.add('show');
+
+      if (attending === 'yes') {
+        document.getElementById('tyGuestName').textContent = name + ', תודה שאישרת הגעה!';
+        overlay.classList.add('show');
+        startFireworks();
+        setTimeout(stopFireworks, 12000);
+      }
+    } catch (err) {
+      console.error('שגיאה:', err);
+      errorEl.textContent = 'שגיאה: ' + (err.code || err.message || 'בדקי את Firebase');
+      errorEl.classList.add('show');
+      submitBtn.disabled = false;
+      btnText.textContent = 'אשרו הגעה';
+    }
+  });
+
+  overlay.querySelector('.ty-close').addEventListener('click', () => {
+    overlay.classList.remove('show');
+    stopFireworks();
+  });
+</script>
+</body>
+</html>
